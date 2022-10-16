@@ -18,6 +18,9 @@
     ]
   },
   "bump": {
+    "before": [
+      "npm run build"
+    ],
     "after": [
       "npm publish"
     ]
