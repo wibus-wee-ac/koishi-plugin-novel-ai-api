@@ -1,0 +1,29 @@
+{
+  "name": "koishi-plugin-novel-ai-api",
+  "description": "speical novel ai api version",
+  "private": true,
+  "version": "1.0.0",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "dist"
+  ],
+  "license": "MIT",
+  "scripts": {},
+  "keywords": [
+    "chatbot",
+    "koishi",
+    "plugin"
+  ],
+  "peerDependencies": {
+    "koishi": "^4.9.5"
+  },
+  "dependencies": {
+    "image-size": "^1.0.2",
+    "libsodium-wrappers": "^0.7.10"
+  },
+  "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.10"
+  }
+}

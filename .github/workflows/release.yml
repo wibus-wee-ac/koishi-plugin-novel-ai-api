@@ -1,0 +1,30 @@
+on:
+  push:
+    tags: ['v*']
+
+name: Release
+
+jobs:
+  build:
+    name: Upload Release Asset
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    outputs:
+      release_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+      - name: Create Release
+        id: create_release
+        run: |
+          npx changelogithub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
