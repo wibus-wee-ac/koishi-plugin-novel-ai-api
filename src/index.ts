@@ -189,6 +189,7 @@ export function apply(ctx: Context, config: Config) {
     .option('model', `-m [model:string] 生成模型，选填 safe/nai ${config.model}`, { fallback: config.model })  // ``-m Safe/Nai``
     .option('orient', `-o [orient:string] 生成方向，选填 Portrait/Landscape/Square 默认 ${config.orient}`, { fallback: config.orient }) // ``-s Portrait/Square/Landscape``
     .option('seed', '-s <seed:string> 画图种子，不建议使用', { fallback: "" })
+    .option('num', '-n <num:number> 生成数量，不要设太多，请求错误也算做一次 默认 1', { fallback: 1 })
     .option('img2img', '-i 以图画图')
     .option('scale', '-c <scale:number>')
     .option('strength', '-r <strength:number> 画图强度，在使用 img2img 的时候有效，选填 0-1 默认0.5', { fallback: 0.5 }) // ``-r 0.5``
@@ -315,32 +316,44 @@ export function apply(ctx: Context, config: Config) {
         if (debug) session.send(`开始请求：${time()}s`)
 
         // do {
+          
+        const number = options.num ?? 1
+        const returnMessage = [
+          segment('message', `描述标签: ${input}`),
+        ];
+        for (let i = 0; i < number; i++) {
+          session.send(`正在生成第 ${i + 1} 张图`)
           const art = await ctx.http.axios(trimSlash(config.endpoint) + path, {
             method: imgUrl ? 'POST' : 'GET',
             headers: {
-              ...headers
+              ...headers,
             },
             responseType: 'arraybuffer',
             params: { ...parameters },
-            data: imgUrl ? imageBuff.toString('base64') : ''
+            data: imgUrl ? imageBuff.toString('base64') : '',
           }).then(res => {
             if (debug) session.send(`请求完成：${time()}s`)
             let buff = Buffer.from(res.data, 'base64')
             // whileConfition = true
-            return {
+            const data = {
               buffer: buff.toString('base64'),
               seed: res.headers['seed'],
               tags: input,
             }
+            returnMessage.push(
+              segment('message', `绘画种子: ${data.seed}`),
+              segment('image', { url: `base64://${data.buffer}` }),
+            )
+          }).catch(err => {
+            // whileConfition = false
+            session.send(`第 ${i + 1} 张图生成失败`)
+            logger.error(err)
           })
+        }
 
           if (debug) session.send(`返回数据处理完成：${time()}s`)
 
-          const ids = await session.send(segment('message', { forward: true }, [
-            segment('message', `绘画种子: ${art.seed}`),
-            segment('message', `描述标签: ${art.tags}`),
-            segment('image', { url: `base64://${art.buffer}` }),
-          ]))
+          const ids = await session.send(segment('message', { forward: true }, returnMessage))
 
           if (debug) session.send(`发送完成：${time()}s`)
 
