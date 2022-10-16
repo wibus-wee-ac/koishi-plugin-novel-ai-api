@@ -50,6 +50,7 @@
     "@types/libsodium-wrappers": "^0.7.10",
     "@types/node": "^18.11.0",
     "atsc": "^1.1.2",
+    "image-size": "^1.0.2",
     "libsodium-wrappers": "^0.7.10",
     "typescript": "^4.8.4"
   },
