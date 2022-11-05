@@ -101,23 +101,22 @@ export function apply(ctx: Context, config: Config) {
   ctx
     .command('清晰术 <image:text>')
     .alias("清晰术", "清晰", "Real-CUGAN", "RealCUGAN", "real", "upup")
-    .option("pth", "-p --pth <pth:string> 可选: conservative, [1,2,3]x, no", { fallback: "no" })
-    .option("mode", "-o --mode <mode:string> 可选： [2,3,4]x", { fallback: "2x" })
+    .option("pth", "-p --pth <pth:string> 可选: conservative, [1,2,3], no", { fallback: "no" })
+    .option("scale", "-s --scale <scale:string> 可选： [2,3,4]", { fallback: "2" })
     .option("tile", "-t --tile <tile:string> 可选：[0,1,2,3,4]", { fallback: "2" })
     .action(async ({ session, options }, input) => {
-      const api = 'https://hf.space/embed/saber2022/Real-CUGAN/api/predict/'
+      const api = 'https://bilibiliai.azurewebsites.net/api/scale' // api comes from https://github.com/FloatTech/AnimeAPI/tree/main/scale
 
       if (!input?.trim()) return session.execute('help real')
 
       const opth = () => {
-        if (options.pth === "1x") return "denoise1x.pth"
-        if (options.pth === "2x") return "denoise2x.pth"
-        if (options.pth === "3x") return "denoise3x.pth"
-        if (options.pth === "conservative") return "conservative.pth"
-        if (options.pth === "no") return "no-denoise.pth"
-        return "no-denoise.pth"
+        if (options.pth === "1x") return "denoise1x"
+        if (options.pth === "2x") return "denoise2x"
+        if (options.pth === "3x") return "denoise3x"
+        if (options.pth === "conservative") return "conservative"
+        if (options.pth === "no") return "no-denoise"
+        return "no-denoise"
       }
-      const pth = `up${options.mode}-latest-${opth()}`
 
       let imgUrl: string
       input = segment.transform(input, {
@@ -134,47 +133,35 @@ export function apply(ctx: Context, config: Config) {
       session.send("正在施展清晰术！")
 
 
-      let imageBuff: Buffer
-      try {
-        imageBuff = Buffer.from(await download(ctx, imgUrl))
-      } catch (err) {
-        if (err instanceof NetworkError) {
-          return session.text(err.message, err.params)
-        }
-        logger.error(err)
-        return session.text("哎呀，图片加载失败了 › (╯°口°)╯")
-      }
+      // let imageBuff: Buffer
+      // try {
+      //   imageBuff = Buffer.from(await download(ctx, imgUrl))
+      // } catch (err) {
+      //   if (err instanceof NetworkError) {
+      //     return session.text(err.message, err.params)
+      //   }
+      //   logger.error(err)
+      //   return session.text("哎呀，图片加载失败了 › (╯°口°)╯")
+      // }
 
-      const body = {
-        cleared: false,
-        example_id: null,
-        session_hash: generate_code(11),
-        data: [
-          `data:image/png;base64,${String(imageBuff.toString('base64'))}`,
-          pth,
-          Number(options.tile)
-        ]
-      }
+      // const body = {
+      //   cleared: false,
+      //   example_id: null,
+      //   session_hash: generate_code(11),
+      //   data: [
+      //     `data:image/png;base64,${String(imageBuff.toString('base64'))}`,
+      //   ]
+      // }
 
       try {
-        const art = await ctx.http.axios(api, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          responseType: 'json',
-          data: JSON.stringify(body)
-        }).then(res => {
-          return {
-            image: res.data,
-          }
-        })
 
-        const b64 = art.image.data[0].replace(/^data:image\/.*;base64,/, '').trim()
-        session.send(segment('image', { url: `base64://${b64}` }))
+        // 把webp转为 base64
+        const base64 = await ctx.http.axios(`${api}?url=${imgUrl}&model=${opth()}&scale=${options.scale}&tile=${options.tile}`, { responseType: 'arraybuffer' }).then(res => { return Buffer.from(res.data, 'binary').toString('base64') })
+        session.send("清晰术施展成功！")
+        session.send(segment('image', { url: `base64://${base64}` }))
 
       } catch (err) {
+        console.log(err)
         return errorHandler(session, err)
       }
 
